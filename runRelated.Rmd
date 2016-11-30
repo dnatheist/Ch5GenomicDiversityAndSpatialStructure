@@ -1,0 +1,400 @@
+---
+title: "Relatedness Between Murray Cod Larvae 2011-2013"
+author: "Alan Couch"
+date: "`r format(Sys.time(), '%a %b %d %X %Y')`"
+output: html_document
+---
+```{r, "Project_Template_and_Knitr", echo=FALSE, warning=FALSE}
+#The following 2 and 4 lines are needed if knitr is to work with ProjectTemplate.
+require(knitr)
+if (basename(getwd()) == "src") setwd("..") #needed to get knitr to work with project template
+library('ProjectTemplate') #All projectTemplates need this up front
+load.project() #All projectTemplates need this up front
+```
+
+```{r "Set_Global_Options", echo=FALSE, warning=FALSE}
+options(width=200)
+opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+
+knitr::opts_chunk$set(fig.width=15, fig.height=15,fig.path="graphs/") #Make Figures larger and save them
+```
+
+```{r}
+a<-suppressPackageStartupMessages({
+library(plyr)
+library(dplyr)
+library(digest)
+library(igraph)
+library(ggplot2)
+library(data.table)
+library(related)
+})
+
+ptm <- proc.time()
+```
+This calculates the relatedness between larvae within each year so as to identify full sibling pairs(FS) and half sibling pairs (HS). Unrelated (US) is also calculated by the 'r' package 'related'. However we are interested only in FS at this stage to identify common parents and to assist with determining the distance of larval dispersal.
+
+The same is finally calculated for all three years combined.
+
+Because the genetic diversity is low, and there is likely inbreeding among the extant population, the inbreeding mode for 'related' is set to on. This makes calculations much slower, so estimators are not compared for combinations of larvae/adults or years.
+
+```{r echo=FALSE}
+read_chunk('runRelated.R')
+```
+
+# 2011 Larval Relatedness
+```{r "Sibling Relationships in 2011 Larvae"}
+
+#read 2011 subset of data in and change title for graphs.
+df<-ellarvalPeeliSnps; main<-"2011 Larval snps"
+df<-df[-c(1:4),]
+
+pic<-df[2:nrow(df),14] #check pic in order
+plot(as.character(pic),main="Polymorphic Information Content (PIC)", ylab="PIC")# to show PIC is in order (ish) ideally cut off would be 1300 or so.
+rm(pic)
+
+#But choose only first 800 so PC does not crash
+df<-df[-c(802:nrow(df))] #800 rows (they should be in order of PIC so the highest first)
+```
+
+
+```{r Larvae2011, echo=TRUE,tidy=TRUE, tidy.opts=list(comment=FALSE)}
+<<related>>
+        
+```
+
+So there are `r input$nloci` loci being analysed. These are the first loci in the file ATM.
+
+There are `r mean(input$nallelles)` alleles for each of these loci.
+
+There are `r input$ninds` individual fish in this set.
+
+
+From the simulations of 'known' relationships we can choose cut off values for identifying relationships and colouring them in the matrix. In this case FS or PO above 0.4; HS 0.1-0.4; unrelated fish have a relatedness value below 0.15.
+
+## Compare Estimators
+```{r "Compare the estimators"}
+require(related)
+compareestimators (input , 100)
+```
+
+You can see there is not alot of difference between these estimators - at least with this number of loci.
+
+## Plot relationships
+```{r "Plot Relationship Nets using iGraph"}
+require(igraph)
+
+relData<-output$relatedness[,c(2,3,11)]
+hist(relData[,3]) #to see how the data is distributed
+
+#Makes links DF
+lrelData<-relData
+colnames(lrelData)[1] <- "from"
+colnames(lrelData)[2] <- "to"
+colnames(lrelData)[3] <- "weight"
+lrelData$type<-"probRel"
+
+relDataNoRows<-nrow(relData) #get number of rows and store for later use.
+#create new DF for nodes
+nrelData <- data.frame(matrix(ncol = 4, nrow = relDataNoRows))
+colnames(nrelData) <- c("id", "name", "type", "label")
+
+#Populate the DF with the 'to' nodes from original list
+nrelData[,1]<-relData[,2]
+nrelData[,2]<-relData[,2]
+
+#add the first entry from the 'from' list (otherwise it wont get in as it is not
+# in the 'to list')
+newrow = c(relData[1,1],relData[1,1],NA,NA)
+nrelData = rbind(nrelData,newrow)
+
+#have a look
+head(nrelData)
+head(lrelData)
+nrow(nrelData); length(unique(nrelData$id))
+nrow(lrelData); nrow(unique(lrelData[,c("from", "to")]))
+
+nrelData<-data.frame(unique(nrelData[ , 1:4]))
+
+#Apply types "adult" or "larvae" to fish based on id number.
+tst<-ifelse(grepl("^A", nrelData$id),nrelData$type<-"adult",nrelData$type<-"larvae")
+nrelData$type<-tst
+rm(tst)
+
+# Add data from larv to relatedNodes so that they are available for filtering on year etc.
+larvNrel<-merge(nrelData,larv, by.x="id", by.y="LarvalRecords_LarvaID")
+larvNrel<-larvNrel[,c(1:4,66)]
+
+#Create the network data
+net<-graph_from_data_frame(d=lrelData, vertices=nrelData, directed=FALSE)
+
+# Generate colors for adults and larvae:
+colrs <- c("tomato", "gold")
+V(net)$color <- colrs[V(net)$type]
+
+#Limit to full siblings - this also makes it more sparse.
+net.FS <- delete_edges(net, E(net)[weight<0.4])
+l <- layout_with_fr(net.FS)
+
+plot(net.FS, edge.arrow.size=0, edge.curved=0, vertex.size=5,vertex.color=c("orange", "cyan")[(V(net.FS)$type=="larvae")+1], vertex.frame.color="#555555",vertex.label=V(net)$name, vertex.label.color="black",vertex.label.cex=.7,layout=l, main = main)
+```
+
+# 2012 Larval Relatedness
+```{r "Sibling Relationships in 2012 Larvae"}
+#read file in
+df<-twlarvalPeeliSnps; main<-"2012 Larval snps"
+df<-df[-c(1:4),]
+```
+```{r Larvae2012, echo=FALSE}
+<<related>>
+```
+
+So there are `r input$nloci` loci being analysed. These are the first loci in the file ATM.
+
+There are `r mean(input$nallelles)` alleles for each of these loci.
+
+There are `r input$ninds` individual fish in this set.
+
+From the simulations of 'known' relationships we can choose cut off values for identifying relationships and colouring them in the matrix. In this case FS or PO above 0.4; HS 0.1-0.4; unrelated fish have a relatedness value below 0.15.
+
+## Compare Estimators
+```{r}
+require(related)
+compareestimators (input , 100)
+```
+
+You can see there is not alot of difference between these estimators - at least with this number of loci.
+
+## Plot relationships
+```{r}
+require(igraph)
+
+relData<-output$relatedness[,c(2,3,11)]
+hist(relData[,3]) #to see how the data is distributed
+
+#Makes links DF
+lrelData<-relData
+colnames(lrelData)[1] <- "from"
+colnames(lrelData)[2] <- "to"
+colnames(lrelData)[3] <- "weight"
+lrelData$type<-"probRel"
+
+relDataNoRows<-nrow(relData) #get number of rows and store for later use.
+#create new DF for nodes
+nrelData <- data.frame(matrix(ncol = 4, nrow = relDataNoRows))
+colnames(nrelData) <- c("id", "name", "type", "label")
+
+#Populate the DF with the 'to' nodes from original list
+nrelData[,1]<-relData[,2]
+nrelData[,2]<-relData[,2]
+
+#add the first entry from the 'from' list (otherwise it wont get in as it is not
+# in the 'to list')
+newrow = c(relData[1,1],relData[1,1],NA,NA)
+nrelData = rbind(nrelData,newrow)
+
+#have a look
+head(nrelData)
+head(lrelData)
+nrow(nrelData); length(unique(nrelData$id))
+nrow(lrelData); nrow(unique(lrelData[,c("from", "to")]))
+
+nrelData<-data.frame(unique(nrelData[ , 1:4]))
+
+#Apply types "adult" or "larvae" to fish based on id number.
+tst<-ifelse(grepl("^A", nrelData$id),nrelData$type<-"adult",nrelData$type<-"larvae")
+nrelData$type<-tst
+rm(tst)
+
+# Add data from larv to relatedNodes so that they are available for filtering on year etc.
+larvNrel<-merge(nrelData,larv, by.x="id", by.y="LarvalRecords_LarvaID")
+larvNrel<-larvNrel[,c(1:4,66)]
+
+#Create the network data
+net<-graph_from_data_frame(d=lrelData, vertices=nrelData, directed=FALSE)
+
+# Generate colors for adults and larvae:
+colrs <- c("tomato", "gold")
+V(net)$color <- colrs[V(net)$type]
+
+#Limit to full siblings - this also makes it more sparse.
+net.FS <- delete_edges(net, E(net)[weight<0.4])
+l <- layout_with_fr(net.FS)
+
+plot(net.FS, edge.arrow.size=0, edge.curved=0, vertex.size=5,vertex.color=c("orange", "cyan")[(V(net.FS)$type=="larvae")+1], vertex.frame.color="#555555",vertex.label=V(net)$name, vertex.label.color="black",vertex.label.cex=.7,layout=l, main = main)
+```
+
+# 2013 Larval Relatedness
+```{r "Sibling Relationships in 2013 Larvae"}
+
+#read 2013 subset in
+df<-thlarvalPeeliSnps; main<-"2013 Larval snps"
+df<-df[-c(1:4),]
+```
+
+```{r "Larvae2013", echo=FALSE}
+<<related>>
+```
+
+So there are `r input$nloci` loci being analysed. These are the first loci in the file ATM.
+
+There are `r mean(input$nallelles)` alleles for each of these loci.
+
+There are `r input$ninds` individual fish in this set.
+
+From the simulations of 'known' relationships we can choose cut off values for identifying relationships and colouring them in the matrix. In this case FS or PO above 0.4; HS 0.1-0.4; unrelated fish have a relatedness value below 0.15.
+
+## Compare Estimators
+```{r}
+require(related)
+compareestimators (input , 100)
+```
+
+You can see there is not alot of difference between these estimators - at least with this number of loci.
+
+## Plot relationships
+```{r}
+require(igraph)
+
+relData<-output$relatedness[,c(2,3,11)]
+hist(relData[,3]) #to see how the data is distributed
+
+#Makes links DF
+lrelData<-relData
+colnames(lrelData)[1] <- "from"
+colnames(lrelData)[2] <- "to"
+colnames(lrelData)[3] <- "weight"
+lrelData$type<-"probRel"
+
+relDataNoRows<-nrow(relData) #get number of rows and store for later use.
+#create new DF for nodes
+nrelData <- data.frame(matrix(ncol = 4, nrow = relDataNoRows))
+colnames(nrelData) <- c("id", "name", "type", "label")
+
+#Populate the DF with the 'to' nodes from original list
+nrelData[,1]<-relData[,2]
+nrelData[,2]<-relData[,2]
+
+#add the first entry from the 'from' list (otherwise it wont get in as it is not
+# in the 'to list')
+newrow = c(relData[1,1],relData[1,1],NA,NA)
+nrelData = rbind(nrelData,newrow)
+
+#have a look
+head(nrelData)
+head(lrelData)
+nrow(nrelData); length(unique(nrelData$id))
+nrow(lrelData); nrow(unique(lrelData[,c("from", "to")]))
+
+nrelData<-data.frame(unique(nrelData[ , 1:4]))
+
+#Apply types "adult" or "larvae" to fish based on id number.
+tst<-ifelse(grepl("^A", nrelData$id),nrelData$type<-"adult",nrelData$type<-"larvae")
+nrelData$type<-tst
+rm(tst)
+
+# Add data from larv to relatedNodes so that they are available for filtering on year etc.
+larvNrel<-merge(nrelData,larv, by.x="id", by.y="LarvalRecords_LarvaID")
+larvNrel<-larvNrel[,c(1:4,66)]
+
+#Create the network data
+net<-graph_from_data_frame(d=lrelData, vertices=nrelData, directed=FALSE)
+
+# Generate colors for adults and larvae:
+colrs <- c("tomato", "gold")
+V(net)$color <- colrs[V(net)$type]
+
+#Limit to full siblings - this also makes it more sparse.
+net.FS <- delete_edges(net, E(net)[weight<0.4])
+l <- layout_with_fr(net.FS)
+
+plot(net.FS, edge.arrow.size=0, edge.curved=0, vertex.size=5,vertex.color=c("orange", "cyan")[(V(net.FS)$type=="larvae")+1], vertex.frame.color="#555555",vertex.label=V(net)$name, vertex.label.color="black",vertex.label.cex=.7,layout=l, main = main)
+```
+
+#All Three Years
+# 2011-2013 Larval Relatedness
+```{r "Sibling Relationships in 3 years Larvae"}
+
+#read file/s in and generate dataset for sibling analysis
+df<-larvalPeeliSnps; main<-"3 Years Larval snps"
+df<-df[-c(1:4),]
+```
+
+```{r "LarvaeAllYears", echo=FALSE}
+<<related>>
+```
+
+
+So there are `r input$nloci` loci being analysed. These are the first loci in the file ATM.
+
+There are `r mean(input$nallelles)` alleles for each of these loci.
+
+There are `r input$ninds` individual fish in this set.
+From the simulations of 'known' relationships we can choose cut off values for identifying relationships and colouring them in the matrix. In this case FS or PO above 0.4; HS 0.1-0.4; unrelated fish have a relatedness value below 0.15.
+
+## Plot relationships
+```{r}
+require(igraph)
+
+relData<-output$relatedness[,c(2,3,11)]
+hist(relData[,3]) #to see how the data is distributed
+
+#Makes links DF
+lrelData<-relData
+colnames(lrelData)[1] <- "from"
+colnames(lrelData)[2] <- "to"
+colnames(lrelData)[3] <- "weight"
+lrelData$type<-"probRel"
+
+relDataNoRows<-nrow(relData) #get number of rows and store for later use.
+#create new DF for nodes
+nrelData <- data.frame(matrix(ncol = 4, nrow = relDataNoRows))
+colnames(nrelData) <- c("id", "name", "type", "label")
+
+#Populate the DF with the 'to' nodes from original list
+nrelData[,1]<-relData[,2]
+nrelData[,2]<-relData[,2]
+
+#add the first entry from the 'from' list (otherwise it wont get in as it is not
+# in the 'to list')
+newrow = c(relData[1,1],relData[1,1],NA,NA)
+nrelData = rbind(nrelData,newrow)
+
+#have a look
+head(nrelData)
+head(lrelData)
+nrow(nrelData); length(unique(nrelData$id))
+nrow(lrelData); nrow(unique(lrelData[,c("from", "to")]))
+
+nrelData<-data.frame(unique(nrelData[ , 1:4]))
+
+#Apply types "adult" or "larvae" to fish based on id number.
+tst<-ifelse(grepl("^A", nrelData$id),nrelData$type<-"adult",nrelData$type<-"larvae")
+nrelData$type<-tst
+rm(tst)
+
+# Add data from larv to relatedNodes so that they are available for filtering on year etc.
+larvNrel<-merge(nrelData,larv, by.x="id", by.y="LarvalRecords_LarvaID")
+larvNrel<-larvNrel[,c(1:4,66)]
+
+#Create the network data
+net<-graph_from_data_frame(d=lrelData, vertices=nrelData, directed=FALSE)
+
+# Generate colors for adults and larvae:
+colrs <- c("tomato", "gold")
+V(net)$color <- colrs[V(net)$type]
+
+#Limit to full siblings - this also makes it more sparse.
+net.FS <- delete_edges(net, E(net)[weight<0.4])
+l <- layout_with_fr(net.FS)
+
+plot(net.FS, edge.arrow.size=0, edge.curved=0, vertex.size=5,vertex.color=c("orange", "cyan")[(V(net.FS)$type=="larvae")+1], vertex.frame.color="#555555",vertex.label=V(net)$name, vertex.label.color="black",vertex.label.cex=.7,layout=l, main = main)
+```
+
+```{r "Include_Chunk_Labels_and_Session Information"}
+all_labels()
+proc.time()-ptm
+#Session Information
+sessionInfo()
+
+```

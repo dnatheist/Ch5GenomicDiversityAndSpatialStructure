@@ -1,0 +1,25 @@
+---
+title: "Chapter 5 Combined Results"
+author: "Alan Couch"
+date: "`r format(Sys.time(), '%a %b %d %X %Y')`"
+output: word_document
+toc: yes
+---
+
+
+###########
+
+#Wont work in any case as need to switch between 32 bit and 64 bit r 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r child = 'otherGenetics.Rmd'}
+```
+
+```{r child = 'pipeline01.Rmd'}
+```
+```{r child = 'pipeline02sim.Rmd'}
+```
+```{r child = 'pipeline03plots.Rmd'}
+```

@@ -1,0 +1,157 @@
+---
+title: "Relatedness Between Larvae and Adults"
+author: "Alan Couch"
+date: "`r format(Sys.time(), '%a %b %d %X %Y')`"
+output: html_document
+---
+```{r, "Project_Template_and_Knitr", echo=FALSE, warning=FALSE}
+#The following 2 and 4 lines are needed if knitr is to work with ProjectTemplate.
+require(knitr)
+if (basename(getwd()) == "src") setwd("..") #needed to get knitr to work with project template
+library('ProjectTemplate') #All projectTemplates need this up front
+load.project() #All projectTemplates need this up front
+```
+
+```{r "Set_Global_Options", echo=FALSE, warning=FALSE}
+options(width=200)
+opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+
+knitr::opts_chunk$set(fig.width=15, fig.height=15,fig.path="/graphs/") #Make Figures larger and save them
+```
+
+Because the genetic diversity is low, and there is likely inbreeding among the extant population, the inbreeding mode for 'related' is set to on. This makes calculations much slower, so estimators are not compared for combinations of larvae/adults or years.
+
+```{r echo=FALSE}
+	library(digest)
+	library(igraph)
+	library(ggplot2)
+        library(data.table)
+        library(related)
+
+ptm <- proc.time()
+```
+
+```{r echo=FALSE}
+read_chunk('runRelated.R')
+read_chunk('createNetAdults.R')
+read_chunk('compareRelatedEstimators.R')
+```
+# 2011 Larval with Adult Relatedness
+```{r "Sibling Relationships in 2011 Larvae and Adults"}
+#read file in
+elAdLarv<-cbind(ellarvalPeeliSnps,adultPeeliSnps)
+df<-elAdLarv; main<-"2011 Larval snps with Adults"
+df<-df[-c(1:4),]
+```
+
+```{r Larvae2011, echo=TRUE,tidy=TRUE, tidy.opts=list(comment=FALSE)}
+<<related>>
+```
+
+So there are `r input$nloci` loci being analysed. These are the first loci in the file ATM.
+
+There are `r mean(input$nalleles)` alleles for each of these loci.
+
+There are `r input$ninds` individual fish in this set.
+
+From the simulations of 'known' relationships we can choose cut off values for identifying relationships and colouring them in the matrix. In this case FS or PO above 0.4; HS 0.1-0.4; unrelated fish have a relatedness value below 0.15.
+
+## Compare Estimators
+```{r Larvae2011Estimators, echo=TRUE,tidy=TRUE, tidy.opts=list(comment=FALSE)}
+<<compareRelEstimators>>
+```
+
+You can see there is not alot of difference between these estimators - at least with this number of loci.
+```{r Larvae2011Net, echo=TRUE,tidy=TRUE, tidy.opts=list(comment=FALSE)}
+<<createNetA>>
+```
+## Plot relationships
+```{r}
+#Limit to full siblings - this also makes it more sparse.
+net.FS <- delete_edges(net, E(net)[weight<0.4])
+l <- layout_with_fr(net.FS)
+
+plot(net.FS, edge.arrow.size=0, edge.curved=0.2, vertex.size=5,vertex.color=c("orange", "cyan")[(V(net.FS)$type=="larvae")+1], vertex.frame.color="#555555",vertex.label=V(net)$name, vertex.label.color="black",vertex.label.cex=.7,layout=l, main = main)
+```
+
+# 2012 Larval with Adult Relatedness
+```{r "Sibling Relationships in 2012 Larvae and Adults"}
+
+#read file in
+twAdLarv<-cbind(twlarvalPeeliSnps,adultPeeliSnps)
+df<-twAdLarv; main<-"2012 Larval snps with Adults"
+df<-df[-c(1:4),]
+```
+
+```{r Larvae2012, echo=TRUE,tidy=TRUE, tidy.opts=list(comment=FALSE)}
+<<related>>
+```
+So there are `r input$nloci` loci being analysed. These are the first loci in the file ATM.
+
+There are `r mean(input$nalleles)` alleles for each of these loci.
+
+There are `r input$ninds` individual fish in this set.
+From the simulations of 'known' relationships we can choose cut off values for identifying relationships and colouring them in the matrix. In this case FS or PO above 0.4; HS 0.1-0.4; unrelated fish have a relatedness value below 0.15.
+
+## Compare Estimators
+```{r Larvae2012Estimators, echo=TRUE,tidy=TRUE, tidy.opts=list(comment=FALSE)}
+<<compareRelEstimators>>
+```
+
+You can see there is not alot of difference between these estimators - at least with this number of loci.
+```{r Larvae2012Net, echo=TRUE,tidy=TRUE, tidy.opts=list(comment=FALSE)}
+<<createNetA>>
+```
+## Plot relationships
+```{r}
+#Limit to full siblings - this also makes it more sparse.
+net.FS <- delete_edges(net, E(net)[weight<0.4])
+l <- layout_with_fr(net.FS)
+
+plot(net.FS, edge.arrow.size=0, edge.curved=0, vertex.size=5,vertex.color=c("orange", "cyan")[(V(net.FS)$type=="larvae")+1], vertex.frame.color="#555555",vertex.label=V(net)$name, vertex.label.color="black",vertex.label.cex=.7,layout=l, main = main)
+```
+
+# 2013 Larval with Adult Relatedness
+```{r "Sibling Relationships in 2013 Larvae and Adults"}
+
+#read file in
+thAdLarv<-cbind(thlarvalPeeliSnps,adultPeeliSnps)
+df<-thAdLarv; main<-"2013 Larval snps with Adults"
+df<-df[-c(1:4),]
+```
+
+```{r Larvae2013, echo=TRUE,tidy=TRUE, tidy.opts=list(comment=FALSE)}
+<<related>>
+```
+So there are `r input$nloci` loci being analysed. These are the first loci in the file ATM.
+
+There are `r mean(input$nalleles)` alleles for each of these loci.
+
+There are `r input$ninds` individual fish in this set.
+From the simulations of 'known' relationships we can choose cut off values for identifying relationships and colouring them in the matrix. In this case FS or PO above 0.4; HS 0.1-0.4; unrelated fish have a relatedness value below 0.15.
+
+## Compare Estimators
+```{r Larvae2013Estimators, echo=TRUE,tidy=TRUE, tidy.opts=list(comment=FALSE)}
+<<compareRelEstimators>>
+```
+
+You can see there is not alot of difference between these estimators - at least with this number of loci.
+```{r Larvae2013Net, echo=TRUE,tidy=TRUE, tidy.opts=list(comment=FALSE)}
+<<createNetA>>
+```
+## Plot relationships
+```{r}
+#Limit to full siblings - this also makes it more sparse.
+net.FS <- delete_edges(net, E(net)[weight<0.4])
+l <- layout_with_fr(net.FS)
+
+plot(net.FS, edge.arrow.size=0, edge.curved=0, vertex.size=5,vertex.color=c("orange", "cyan")[(V(net.FS)$type=="larvae")+1], vertex.frame.color="#555555",vertex.label=V(net)$name, vertex.label.color="black",vertex.label.cex=.7,layout=l, main = main)
+```
+
+```{r "Include_Chunk_Labels_and_Session Information"}
+all_labels()
+proc.time()-ptm
+#Session Information
+sessionInfo()
+
+```

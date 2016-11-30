@@ -1,0 +1,293 @@
+---
+title: 'Riverine Hybridisation of Trout and Murray Cod'
+author: "Alan Couch"
+date: "`r format(Sys.time(), '%a %b %d %X %Y')`"
+output: word_document
+---
+
+```{r, "Project_Template_and_Knitr", echo=FALSE, warning=FALSE}
+#The following 2 and 4 lines are needed if knitr is to work with ProjectTemplate.
+require(knitr)
+if (basename(getwd()) == "src") setwd("..") #needed to get knitr to work with project template
+library('ProjectTemplate') #All projectTemplates need this up front
+load.project() #All projectTemplates need this up front
+```
+
+```{r "Set_Global_Options", echo=FALSE, warning=FALSE}
+options(width=200)
+opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+knitr::opts_chunk$set(fig.width=15, fig.height=15,fig.path="../graphs/") #Make Figures larger and save them
+```
+This document includes methods, results and possibly some discussion dot points for the genomics and larval dispersal chapter.  
+
+```{r "LoadLibraries"}
+source("http://addictedtor.free.fr/packages/A2R/lastVersion/R/code.R")# load code of A2R function
+library(ggplot2)
+library(ggdendro)
+library(ape)
+library(dendextend)
+library(Hmisc)
+library(ade4)
+require(plyr)
+require(dplyr)
+```
+
+##Method
+The larvae used in the dispersal analysis were collected in 2011,2012,2013 from 6 sites.
+```{r}
+DArTsnps$X1<-rownames(DArTsnps)
+countSites<-merge(larv,DArTsnps, by.x="LarvalRecords_LarvaID", by.y="X1")
+countSites<-dplyr::select(countSites,SiteName)
+table(countSites)
+DArTsnps$X1<-NULL
+```
+
+
+ 
+ 
+ 
+ 
+ 
+ Species seperation
+ 
+ Clades and r apps.
+ 
+ DaRT as described...
+ 
+ PCR would bias representation. p67 LFC
+ 
+ Wilmott Skill Metric p.60 LFC - any relevence?
+ 
+```{r}
+row.names(larv)<-larv$Label
+```
+
+
+##Results
+
+###Polymorphisms Examined
+
+Dart sequencing on Next Generation Sequencing (NGS) platforms was used to reduce genome complexity allowing an intelligent selection of genome fraction corresponding predominantly to active genes. This selection was achieved through the use of a combination of Restriction Enzymes which separate low copy sequences (most informative for marker discovery and typing) from the repetitive fraction of the genome. The advantage of the DArTseq technique is the very high marker densities that were obtained which allows high resolution mapping and detailed genetic dissection of traits. 
+
+```{r }
+uniqueSNPS<-unique(Report.DMac15.1861$X..2)
+lengthDNA<-median(as.numeric(nchar(as.character(Report.DMac15.1861$X..2))))
+```
+Of the 21076 alleles, the number of unique *Maccullochella* snps analysed in the DaRT sequences was `r length(uniqueSNPS)-2`. The base pairs that had mutated were as follows:
+
+
+```{r eval=TRUE, echo=FALSE}
+#regex etc to pulls a,c,t,g for counts.
+dfBPchange<-Report.DMac15.1861$X..3
+dfBPchange<-dfBPchange[-c(1:5)]
+#head(dfBPchange)
+dfBPchange<-as.data.frame(dfBPchange)
+dfBPchange<-gsub(".*:","",dfBPchange$dfBPchange) #remove all position numbers before the ':'
+#dfBPchange<-gsub(" ","",dfBPchange$dfBPchange) #remove all spaces
+dfBPchange<-as.data.frame(dfBPchange)
+dfBPchange<-dfBPchange[!(dfBPchange$dfBPchange==""), ]
+dfBPchange<-as.data.frame(dfBPchange)
+table(dfBPchange)
+# Preferably display as a cross tab.
+```
+
+The polymorphisms examined included SNPs and small indels in restriction enzyme recognition sites, and while none were observed,  larger insertions/deletions in restriction fragments could also have been utilised. The polymorphisms selected for genotyping were all snps. 
+
+The length of the fragments of DNA in this sequencing was `r lengthDNA` base pairs. The frequency of  polymorphisms along the position of the fragment Varies. This variation in the `r lengthDNA` base pair DNA fragment can be seen in the following histogram:
+
+```{r}
+polymorphismPositionHistogram<-hist(as.numeric(Report.DMac15.1861$X..4),main= "Histogram of SNP Position in DaRT seq 69 Base Pair Fragment", xlab="SNP Position on Fragment - BIN", breaks = 13, col = "lightblue", border = "pink",cex.main = 2.5,cex.lab=2) #a plot of the relative position of the polymorphism along the 69 base pair fragment of DNA.
+#plot(polymorphismPositionHistogram)
+```
+
+
+###All *Maccullochella* Larvae and Adults
+
+A dendrogram of all the larvae allows examination of the relationships between all the sampled fish which included larvae and a small number of adult Murray cod. Two trout cod controls were included, one hatchery sourced, the other from a stocked impoundment, Bendora Dam, in the ACT.
+
+```{r "All_Maccullochella_Larvae", echo=FALSE}
+##Now to delete data not required for distance matrix creation.
+DArTsnps<-as.data.frame(t(DArTsnps))
+DArTsnps<-DArTsnps[-c(1:17),] # 17 rows of DArT calculations and allele sequences
+DArTsnps<-DArTsnps[,-c(2:5)] # 4 columns of DArT descriptors
+rownames(DArTsnps) <- DArTsnps[,1] #Make rownames meaningful
+DArTsnps$X1 <- NULL #Remove V4 as now redundant.
+
+degradedFish<-c("243","248","249","251","252","253")
+DArTsnps<-DArTsnps[-which(rownames(DArTsnps)%in% degradedFish),] #larvae were rotting as a result of a fresh in the river and inability to retrieve nets for a few days.
+
+
+MacDm <- dist(DArTsnps) #Create distance matrix all Maccullochella larvae
+#heatmap(as.matrix(MacDm)) #Make a heat map
+MacHC <- hclust(MacDm) #make a heirarchical cluster
+#plot(color_labels(MacHC, k = 4), main="All Maccullochella Larvae Clades",cex.main = 2.5,cex.lab=0.75) 
+#Plot the cluster dendrogram
+```
+ 
+```{r "Reduced_Maccullochella_Larvae"}
+##Create list with Adult Fish identifiers
+DArTsnps$X1<-rownames(DArTsnps)
+adultFish<-c(subset(DArTsnps, grepl("A", X1),X1))
+adultFish<-adultFish$X1
+DArTsnps$X1<-NULL
+
+## Create reduced set for legibility of dendrogram
+## by removing a 150 or so Murray cod from the dendrogram including adults and some trial ones
+
+redsnps<-DArTsnps[-which(rownames(DArTsnps)%in% c(70:101)),]#remove more 
+redsnps<-DArTsnps[-which(rownames(DArTsnps)%in% c(107:140)),]#remove more, but not 102 or 106?
+redsnps<-redsnps[-which(rownames(redsnps)%in% c(150:170)),]#remove more
+redsnps<-redsnps[-which(rownames(redsnps)%in% c(303:400)),]#remove more
+redsnps<-redsnps[-which(rownames(redsnps)%in% c(270:300)),]#remove more
+redsnps<-redsnps[-which(rownames(redsnps)%in% adultFish),]#remove adults
+redsnps<-redsnps[-which(rownames(redsnps)%in% 221),]#remove trial fish
+
+##and plot the same
+
+MacDm <- dist(redsnps) #Create distance matrix all Maccullochella larvae
+#heatmap(as.matrix(MacDm)) #Make a heat map
+MacHC <- hclust(MacDm) #make a heirarchical cluster
+plot(color_labels(MacHC, k = 4), main="All Maccullochella Larvae Clades",cex.main = 2.5,cex.lab=0.75) 
+#Plot the cluster dendrogram
+```
+
+As it turns out there are some larvae that are intermediate between the two known *Maccullochella* species M. macquariensis and M. peelii. All the samples tested fall into three distinct clades. The above dendrograms shows all larvae (mostly Murray cod) and two known Trout cod controls, and what appears to be F1 and F2 hybrids between the two species. There were 4 hybrid larvae detected in the 135 larvae in 2013 caught and sequenced from the river. There were two hybrids sampled in 2012 (of 49 larvae sampled) and none in 2011 (of 64). No unhybridised trout cod larvae were detected in any of the three years. Two larvae 102 and 106 were intermediate between F2 and Murray cod and were left  assigned to *M. Peeli* although it is possible they are F2. 
+
+```{r eval=FALSE}
+##This section should only be run interactively see adegenet:find.cluster:choose.n.clust in help for explanation. However, I have done that and selected 4 clusters and 3 PC to be used in dapcl. 
+require(adegenet)
+MacDm <- dist.gene(DArTsnps)
+tst<-find.clusters(as.matrix(MacDm), max.n.clust=10) 
+
+dapc1 <- dapc(as.matrix(MacDm), tst$grp)
+#scatter(dapc1)
+#scatter(dapc1, posi.da="bottomright", bg="white", pch=17:22)
+
+
+myCol <- c("darkblue","purple","green","orange","red","blue")
+scatter(dapc1, ratio.pca=0.3, bg="white", pch=20, cell=0, cstar=0, col=myCol, solid=.4,
+cex=3, clab=0, mstree=TRUE, scree.da=FALSE,
+posi.pca="bottomright", leg=TRUE, txt.leg=paste("Cluster",1:4))
+par(xpd=TRUE)
+points(dapc1$grp.coord[,1], dapc1$grp.coord[,2], pch=4, cex=3, lwd=8, col="black")
+points(dapc1$grp.coord[,1], dapc1$grp.coord[,2], pch=4, cex=3, lwd=2, col=myCol)
+myInset <- function(){
+temp <- dapc1$pca.eig
+temp <- 100* cumsum(temp)/sum(temp)
+plot(temp, col=rep(c("black","lightgrey"), c(dapc1$n.pca,1000)), ylim=c(0,100),
+xlab="PCA axis", ylab="Cumulated variance (%)", cex=1, pch=20, type="h", lwd=2)
+}
+#add.scatter(myInset(), posi="bottomleft", inset=c(-0.03,0.01), ratio=.28, bg=transp("white"))
+
+scatter(dapc1,1,1, col=myCol, bg="white", scree.da=FALSE, legend=TRUE, solid=.4)
+
+```
+
+
+###Trout Cod Larvae
+```{r "Hybrids List"}
+tcList <- c("","M. peelii","undetermined")
+tcl<-subset(larv, !(Species %in% tcList),select=c(Species,YearOnly))
+mitoTcList<-subset(larv, !(Species %in% tcList),select=c(LarvalRecords_LarvaID, Species,YearOnly, Genetics_PlateID, Genetics_Row, Genetics_Column))
+table<-tcl
+
+##List with all samples for Mito sequencing including MC and TC controls and 102, 106 which are intermediate
+atcList<-c("262","269","302","178","141","145","102","106","76","100")
+allMitoTcList<-subset(larv, (LarvalRecords_LarvaID %in% atcList),select=c(LarvalRecords_LarvaID, Species,YearOnly, Genetics_PlateID, Genetics_Row, Genetics_Column))
+```
+
+The remainder of this analysis is limited to Trout cod and hybrid *Maccullochella* data, although some figures will display two Murray cod for clarity. It is not an insignificant finding that the two species do in fact hybridise in this natural riverine environment even though hybrids have been seen in hatcheries and impoundments previously. [references] Furthermore this is the first time fertile F1 have been recorded as evidenced by the finding of an F2 hybrid. 
+
+Because Trout cod were believed extirpated there was a restocking program - detailed below. There has been sufficient time for 2 generations to have occured since the initial stocking. 
+```{r, "Trout_Cod_Dendrograms"}
+#A heatmap and dendrogram for Trout Cod shows three distinct clades.
+
+troutCodsnps<-c("262","269","302","178","Narranderah","Bendora20130408","141","145","102","106","76","100")
+TCdm<-DArTsnps[which(rownames(DArTsnps)%in% troutCodsnps),]
+TCdm <- dist(TCdm)
+#Heat map
+#dataMatrix <- as.matrix(TCdm)
+#heatmap(dataMatrix, main="Trout Cod Heat Map")
+
+#cluster
+TChc <- hclust(TCdm)
+#Plot it
+#plot(TChc, main="Maccullochella macquariensis larvae")
+A2Rplot(TChc, k =3, boxes = FALSE, col.up = "gray50",main = "Maccullochella macquariensis larvae")
+
+#macquariensisDistMat <- dist(troutCodsnps) #Create Trout cod Distance Matrix
+#macquariensisCluster <- hclust(macquariensisDistMat) #create cluster
+```
+Both the heatmap and dendrogram for Trout Cod shows three distinct clades.
+
+##Genetic FST
+The genetic relationship as measured by Fst between sites sampled fish points to the diversity between Trout cod and the Murray cod with intermediate values for the hybrid sites. 
+
+```{r "Make GenLight File", echo=FALSE, results="hide"}
+#Basically to prepare file types for newHybrid input
+#but cant yet get NewHtbrids working - a .dll cant be found/installed.
+source("dart.r")
+source("read.dart.r")
+
+all.dart <- read.dart("../OtherData/allDArTsnps.csv", topskip = 5)
+gl.dart <- dart2genlight(all.dart, covfilename = "../OtherData/qslDartCovariatesAllSpecies.csv")
+#for when running in non-knitr mode only
+
+#source("src/dart.r")
+#source("src/read.dart.r")
+#all.dart <- read.dart(".\\OtherData\\allDArTsnps.csv", topskip = 5)
+#gl.dart <- dart2genlight(all.dart, covfilename = ".\\OtherData\\qslDartCovariatesAllSpecies.csv")
+
+######NB: covariatesAll is incomplete - needs fixing.
+```
+
+```{r }
+##Fst and Neis D
+library(StAMPP)
+
+##These are all larvae at the moment as I can not create a genlight - a limitation of 'n cores' in windows.
+
+
+
+snpfst <-stamppFst(gl.dart,nboots=1, percent=95, nclusters=8 )
+print(round(snpfst,3))
+
+popNeisD<-stamppNeisD(gl.dart, TRUE)
+plot(hclust(dist(popNeisD)))
+indNeisD<-stamppNeisD(gl.dart, FALSE)
+plot(hclust(dist(indNeisD)))
+
+##Amova
+stamppAmova(indNeisD,gl.dart,  100)
+
+#stamppPhylip(snpfst, file="snpfstPhylip.txt")
+```
+
+#Mitochondrial DNA
+
+#Location of Hybrid Larvae
+
+![Location of Hybrid Larvae](../graphs/TableauHybridsMap.jpg) 
+
+#Temporal aspects of Hybrid Larvae
+```{r}
+hyb<-data.frame(subset(larv$Species, grepl("^F", larv$Species), Day.of.Year))
+
+hyb<-larv$Species
+isHyb<-data.frame(subset(larv, grepl("^F", hyb), c(Day.of.Year, estimatedAge)))
+notHyb<-data.frame(subset(larv, !grepl ("^F", hyb), c(Day.of.Year, estimatedAge)))
+
+t.test(isHyb$Day.of.Year,notHyb$Day.of.Year)
+t.test(isHyb$estimatedAge,notHyb$estimatedAge)
+```
+
+
+##Discussion (points only)
+
+#Maternal Species
+* It will be interesting to mito-sequence the trout cod and determine the species of the male and female parent. It is likely that that the female is the Trout cod in the mating pair given the scarcity of trout cod compared with Murray cod and the mate pressure that must exist. 
+
+When BLASTED (Stephen F. Altschul, Thomas L. Madden, Alejandro A. Schäffer, Jinghui Zhang, Zheng Zhang, Webb Miller, and David J. Lipman (1997), "Gapped BLAST and PSI-BLAST: a new generation of protein database search programs", Nucleic Acids Res. 25:3389-3402. ) the seven matches for Maccullochella macquariensis mitochondria were limited to the putative Trout cod clades confirming the analysis but also suggesting that the F1 and F2 hybrids had a Trout cod for a female parent rather than a male parent. While n=2 in this case and the finding is not statistically significant, it does accord with our hytpothesis that female Trout cod, being outnumbered in the river are more likely to be pressured into mating by plentifuMurray cod males, rather than locating the scarcer Trout cod males.
+
+#Restocking Efforts
+
