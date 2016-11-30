@@ -1,0 +1,168 @@
+--- 
+title: Relatedness Between Murray Cod Larvae 2011-2013 Pipeline to be broken apart
+  as per word document.
+author: "Alan Couch"
+date: "`r format(Sys.time(), '%a %b %d %X %Y')`"
+output: html_document
+---
+```{r, "Project_Template_and_Knitr", echo=FALSE, warning=FALSE}
+#The following 2 and 4 lines are needed if knitr is to work with ProjectTemplate.
+require(knitr)
+if (basename(getwd()) == "src") setwd("..") #needed to get knitr to work with project template
+library('ProjectTemplate') #All projectTemplates need this up front
+load.project() #All projectTemplates need this up front
+```
+
+```{r "Set_Global_Options", echo=FALSE, warning=FALSE}
+options(width=200)
+opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+knitr::opts_chunk$set(fig.width=15, fig.height=15,fig.path="graphs/") #Make Figures larger and save them
+```
+
+```{r}
+a<-suppressPackageStartupMessages({
+library(plyr)
+library(dplyr)
+library(digest)
+library(igraph)
+library(ggplot2)
+library(data.table)
+library(related)
+})
+
+ptm <- proc.time()
+```
+This is the first in the pipeline. This calculates the relatedness between larvae within each year so as to identify full sibling pairs(FS) and half sibling pairs (HS). Unrelated (UR) is also calculated by the 'r' package 'related'. However we are interested only in FS at this stage to identify common parents and to assist with determining the distance of larval dispersal.
+
+The same is finally calculated for all three years combined.
+
+Because the genetic diversity is low, and there is likely inbreeding among the extant population, the inbreeding mode for 'related' is set to on. This makes calculations much slower, so estimators are not compared for combinations of larvae/adults or years.
+
+```{r echo=FALSE}
+read_chunk('runRelated01.R')
+```
+
+# 2011 Larval Relatedness
+```{r "Sibling Relationships in 2011 Larvae"}
+
+#read 2011 subset of data in and change title for graphs.
+df<-ellarvalPeeliSnps; main<-"2011 Larval snps"
+df<-df[-c(1:4),]
+
+pic<-df[2:nrow(df),14] #check pic in order
+plot(as.character(pic),main="Polymorphic Information Content (PIC)", ylab="PIC")# to show PIC is in order (ish) ideally cut off would be 1300 or so.
+rm(pic)
+
+#But choose only 800 so PC does not crash
+#df<-df[-c(802:nrow(df)),] #800 rows (they should be in order of PIC so the highest first)
+df<-rbind(df[1,],sample_n(df, 800))
+```
+
+```{r Larvae2011, echo=FALSE}
+<<related>>
+```
+
+So there are `r input$nloci` loci being analysed. These are the first loci in the file ATM.
+
+There are `r mean(input$nalleles)` alleles for each of these loci.
+
+There are `r input$ninds` individual fish in this set.
+
+# 2012 Larval Relatedness
+```{r "Sibling Relationships in 2012 Larvae"}
+#read file in
+df<-twlarvalPeeliSnps; main<-"2012 Larval snps"
+df<-df[-c(1:4),]
+
+#But choose only first 800 so PC does not crash
+#df<-df[-c(802:nrow(df)),] #800 rows (they should be in order of PIC so the highest first)
+df<-rbind(df[1,],sample_n(df, 800))
+```
+
+```{r Larvae2012, echo=FALSE}
+<<related>>
+```
+
+So there are `r input$nloci` loci being analysed. These are the first loci in the file ATM.
+
+There are `r mean(input$nalleles)` alleles for each of these loci.
+
+There are `r input$ninds` individual fish in this set.
+
+# 2013 Larval Relatedness
+```{r "Sibling Relationships in 2013 Larvae"}
+
+#read 2013 subset in
+df<-thlarvalPeeliSnps; main<-"2013 Larval snps"
+df<-df[-c(1:4),]
+
+#But choose only first 800 so PC does not crash
+#df<-df[-c(802:nrow(df)),] #800 rows (they should be in order of PIC so the highest first)
+df<-rbind(df[1,],sample_n(df, 800))
+```
+
+```{r "Larvae2013", echo=FALSE}
+<<related>>
+```
+
+So there are `r input$nloci` loci being analysed. These are the first loci in the file ATM.
+
+There are `r mean(input$nalleles)` alleles for each of these loci.
+
+There are `r input$ninds` individual fish in this set.
+
+
+# 2011-2013 Larval Relatedness
+```{r "Sibling Relationships in 3 years Larvae"}
+
+#read file/s in and generate dataset for sibling analysis
+df<-larvalPeeliSnps; main<-"2011-2013 Larval snps"
+df<-df[-c(1:4),]
+
+#But choose only first 800 so PC does not crash
+#df<-df[-c(802:nrow(df)),] #800 rows (they should be in order of PIC so the highest first)
+df<-rbind(df[1,],sample_n(df, 800))
+```
+
+```{r "LarvaeAllYears", echo=FALSE}
+<<related>>
+```
+
+So there are `r input$nloci` loci being analysed. These are the first loci in the file ATM.
+
+There are `r mean(input$nalleles)` alleles for each of these loci.
+
+There are `r input$ninds` individual fish in this set.
+
+# 2011-2013 Larvae Relatedness with Adults
+```{r "Sibling and Adult Relationships"}
+
+#read file/s in and generate dataset for sibling analysis
+adLarv<-cbind(larvalPeeliSnps,adultPeeliSnps)
+df<-adLarv; main<-"2011-2013 Larval snps with Adults"
+df<-df[-c(1:4),]
+
+#But choose only first 800 so PC does not crash
+#df<-df[-c(802:nrow(df)),] #800 rows (they should be in order of PIC so the highest first)
+df<-rbind(df[1,],sample_n(df, 800))
+```
+
+
+```{r "Adults and Larvae AllYears", echo=FALSE}
+<<related>>
+```
+So there are `r input$nloci` loci being analysed. These are the first loci in the file ATM.
+
+There are `r mean(input$nalleles)` alleles for each of these loci.
+
+There are `r input$ninds` individual fish in this set.
+
+# 2011-2013 Larvae Half Sib Relatedness with Nominal Parents
+
+#Code Chunks and Session Info
+```{r "Include_Chunk_Labels_and_Session Information"}
+all_labels()
+proc.time()-ptm
+#Session Information
+sessionInfo()
+```

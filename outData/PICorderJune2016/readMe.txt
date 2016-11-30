@@ -1,0 +1,1 @@
+These are the related files but done when I was doing in order of DArT file (non- random) so need to adjusted pipeline01.rmd with a second line to replace so as to select 800 random snps.

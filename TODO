@@ -1,0 +1,19 @@
+Plot genetic dist v relatedness.
+
+add system time to rmds.
+
+select the '600' up front to save processing time.
+
+suppress package loads see: https://github.com/daattali/UBC-STAT545/blob/master/hw/hw12_web-scraping-api/hw12_web-scraping-api.R
+
+consider spin see: http://deanattali.com/2015/03/24/knitrs-best-hidden-gem-spin/
+
+or
+
+https://support.rstudio.com/hc/en-us/articles/200552276-Creating-Notebooks-from-R-Scripts
+
+paths in rmd: see https://github.com/daattali/ezknitr
+
+colour by year yearCombos)
+
+check/replace the ` or ' in inline r code in runRelated.rmd (see report - didnt work)

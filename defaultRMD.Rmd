@@ -1,0 +1,63 @@
+---
+title: "defaultRMD"
+author: "Alan Couch"
+date: "`r format(Sys.time(), '%a %b %d %X %Y')`"
+output: html_document
+---
+
+```{r, "Project_Template_and_Knitr", echo=FALSE, warning=FALSE}
+#The following 2 and 4 lines are needed if knitr is to work with ProjectTemplate.
+require(knitr)
+if (basename(getwd()) == "src") setwd("..") #needed to get knitr to work with project template
+library('ProjectTemplate') #All projectTemplates need this up front
+load.project() #All projectTemplates need this up front
+```
+
+```{r "Set_Global_Options", echo=FALSE, warning=FALSE}
+options(width=200)
+opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+
+knitr::opts_chunk$set(fig.width=15, fig.height=15,fig.path="/graphs/") #Make Figures larger and save them
+```
+
+
+```{r}
+a<-suppressPackageStartupMessages({
+library(plyr)
+library(dplyr)
+library(digest)
+library(igraph)
+library(ggplot2)
+library(data.table)
+library(related)
+})
+
+ptm <- proc.time()
+```
+
+
+```{r}
+#read file in
+df<-read.csv("./otherData/goodDArTsnps.csv", skip=4,na.strings = "-")
+```
+
+these three chunks example for external call
+```{r echo=FALSE}
+read_chunk('example.R')
+```
+
+```{r variablesXY}
+```
+
+```{r plotXY}
+```
+```
+
+
+```{r "Include_Chunk_Labels_and_Session Information"}
+all_labels()
+proc.time()-ptm
+#Session Information
+sessionInfo()
+
+```

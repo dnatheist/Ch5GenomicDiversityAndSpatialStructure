@@ -1,0 +1,48 @@
+---
+title: "test save and load"
+author: "Alan Couch"
+date: "22 June 2016"
+output: html_document
+---
+```{r, "Project_Template_and_Knitr", echo=FALSE, warning=FALSE}
+#The following 2 and 4 lines are needed if knitr is to work wit#The following 2 and 4 lines are needed if knitr is to work with ProjectTemplate.
+require(knitr)
+if (basename(getwd()) == "src") setwd("..") #needed to get knitr to work with project template
+library('ProjectTemplate') #All projectTemplates need this up front
+#load.project() #All projectTemplates need this up front
+```
+
+```{r "Set_Global_Options", echo=FALSE, warning=FALSE}
+options(width=200)
+opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+
+knitr::opts_chunk$set(fig.width=15, fig.height=15,fig.path="graphs/") #Make Figures larger and save them
+```
+
+```{r}
+testdf<-rnorm(20,mean = 10)
+fileName="./outData/test"
+save(testdf,file = fileName)
+rm(testdf)
+#load(file=fileName)
+getwd()
+```
+
+```{r}
+read_chunk('testChunksaveLoad.R')
+```
+
+```{r}
+<<testthing>>
+```
+
+```{r two}
+getwd()
+load(file=fileName)
+#load(file = "./outData/testthingy file")
+filename="./outData/2 testthingy file"
+load(file = filename)
+summary(testdf)
+summary (testthingy)
+```
+

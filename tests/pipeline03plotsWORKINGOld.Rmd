@@ -1,0 +1,293 @@
+---
+title: "Relatedness Between Murray Cod Larvae 2011-2013 iGraph Plots"
+author: "Alan Couch"
+date: "`r format(Sys.time(), '%a %b %d %X %Y')`"
+output: html_document
+---
+```{r, "Project_Template_and_Knitr", echo=FALSE, warning=FALSE}
+#The following 2 and 4 lines are needed if knitr is to work with ProjectTemplate.
+require(knitr)
+if (basename(getwd()) == "src") setwd("..") #needed to get knitr to work with project template
+library('ProjectTemplate') #All projectTemplates need this up front
+load.project() #All projectTemplates need this up front
+```
+
+```{r "Set_Global_Options", echo=FALSE, warning=FALSE}
+options(width=200)
+opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+
+knitr::opts_chunk$set(fig.width=15, fig.height=15,fig.path="graphs/") #Make Figures larger and save them
+```
+
+```{r}
+a<-suppressPackageStartupMessages({
+library(dplyr)
+library(igraph)
+library(ggplot2)
+})
+
+ptm <- proc.time()
+```
+This uses iGraph to plot relatedness between larvae within each year so as to identify full sibling pairs(FS) and perhaps half sibling pairs (HS). Unrelated (US) is also calculated by the 'r' package 'related'. However we are interested only in FS at this stage to identify common parents and to assist with determining the distance of larval dispersal.
+
+The same is finally ploted for all three years combined.
+
+First choose state which estimatore we are to use. (see compareEstimators)
+```{r "Nominate Estimator to Use"}
+estimator=6 #5-trioml,6-wang,7-lynchli,8-lynchrd,9-ritland,10-quellergt,11-dyadml
+estimatorname="Wang" # change as needed with above
+
+#Also choose which cutoffs to use. These are dependant on density plots
+fshsCut<-0.4
+hsurCut<-0.17
+```
+
+# 2011 Larval Relatedness Plots
+```{r "Plot Relationship Nets using iGraph"}
+main="2011 Larval snps"
+load(file = paste(c("outData/",main,"coancestoryOutput"), collapse=" "))
+
+relData<-output$relatedness[,c(2,3,estimator)]
+hist(relData[,3]) #to see how the data is distributed
+
+#Makes links DF
+lrelData<-relData
+colnames(lrelData)[1] <- "from"
+colnames(lrelData)[2] <- "to"
+colnames(lrelData)[3] <- "weight"
+lrelData$type<-"probRel"
+
+relDataNoRows<-nrow(relData) #get number of rows and store for later use.
+#create new DF for nodes
+nrelData <- data.frame(matrix(ncol = 4, nrow = relDataNoRows))
+colnames(nrelData) <- c("id", "name", "type", "label")
+
+#Populate the DF with the 'to' nodes from original list
+nrelData[,1]<-relData[,2]
+nrelData[,2]<-relData[,2]
+
+#add the first entry from the 'from' list (otherwise it wont get in as it is not
+# in the 'to list')
+newrow = c(relData[1,1],relData[1,1],NA,NA)
+nrelData = rbind(nrelData,newrow)
+
+#have a look
+head(nrelData)
+head(lrelData)
+nrow(nrelData); length(unique(nrelData$id))
+nrow(lrelData); nrow(unique(lrelData[,c("from", "to")]))
+
+nrelData<-data.frame(unique(nrelData[ , 1:4]))
+
+#Apply types "adult" or "larvae" to fish based on id number.
+tst<-ifelse(grepl("^A", nrelData$id),nrelData$type<-"adult",nrelData$type<-"larvae")
+nrelData$type<-tst
+rm(tst)
+
+# Add data from larv to relatedNodes so that they are available for filtering on year etc.
+larvNrel<-merge(nrelData,larv, by.x="id", by.y="LarvalRecords_LarvaID")
+larvNrel<-larvNrel[,c(1:4,66)]
+
+#Create the network data
+net<-graph_from_data_frame(d=lrelData, vertices=nrelData, directed=FALSE)
+
+# Generate colors for adults and larvae:
+colrs <- c("tomato", "gold")
+V(net)$color <- colrs[V(net)$type]
+
+#Limit to full siblings - this also makes it more sparse.
+net.FS <- delete_edges(net, E(net)[weight<0.4])
+l <- layout_with_fr(net.FS)
+
+plot(net.FS, edge.arrow.size=0, edge.curved=0, vertex.size=5,vertex.color=c("orange", "cyan")[(V(net.FS)$type=="larvae")+1], vertex.frame.color="#555555",vertex.label=V(net)$name, vertex.label.color="black",vertex.label.cex=.7,layout=l, main = main)
+```
+
+# 2012 Larval Relatedness Plots
+```{r}
+main="2012 Larval snps"
+load(file = paste(c("outData/",main,"coancestoryOutput"), collapse=" "))
+
+relData<-output$relatedness[,c(2,3,estimator)]
+hist(relData[,3]) #to see how the data is distributed
+
+#Makes links DF
+lrelData<-relData
+colnames(lrelData)[1] <- "from"
+colnames(lrelData)[2] <- "to"
+colnames(lrelData)[3] <- "weight"
+lrelData$type<-"probRel"
+
+relDataNoRows<-nrow(relData) #get number of rows and store for later use.
+#create new DF for nodes
+nrelData <- data.frame(matrix(ncol = 4, nrow = relDataNoRows))
+colnames(nrelData) <- c("id", "name", "type", "label")
+
+#Populate the DF with the 'to' nodes from original list
+nrelData[,1]<-relData[,2]
+nrelData[,2]<-relData[,2]
+
+#add the first entry from the 'from' list (otherwise it wont get in as it is not
+# in the 'to list')
+newrow = c(relData[1,1],relData[1,1],NA,NA)
+nrelData = rbind(nrelData,newrow)
+
+#have a look
+head(nrelData)
+head(lrelData)
+nrow(nrelData); length(unique(nrelData$id))
+nrow(lrelData); nrow(unique(lrelData[,c("from", "to")]))
+
+nrelData<-data.frame(unique(nrelData[ , 1:4]))
+
+#Apply types "adult" or "larvae" to fish based on id number.
+tst<-ifelse(grepl("^A", nrelData$id),nrelData$type<-"adult",nrelData$type<-"larvae")
+nrelData$type<-tst
+rm(tst)
+
+# Add data from larv to relatedNodes so that they are available for filtering on year etc.
+larvNrel<-merge(nrelData,larv, by.x="id", by.y="LarvalRecords_LarvaID")
+larvNrel<-larvNrel[,c(1:4,66)]
+
+#Create the network data
+net<-graph_from_data_frame(d=lrelData, vertices=nrelData, directed=FALSE)
+
+# Generate colors for adults and larvae:
+colrs <- c("tomato", "gold")
+V(net)$color <- colrs[V(net)$type]
+
+#Limit to full siblings - this also makes it more sparse.
+net.FS <- delete_edges(net, E(net)[weight<0.4])
+l <- layout_with_fr(net.FS)
+
+plot(net.FS, edge.arrow.size=0, edge.curved=0, vertex.size=5,vertex.color=c("orange", "cyan")[(V(net.FS)$type=="larvae")+1], vertex.frame.color="#555555",vertex.label=V(net)$name, vertex.label.color="black",vertex.label.cex=.7,layout=l, main = main)
+```
+
+# 2013 Larval Relatedness Plots
+```{r}
+main="2013 Larval snps"
+load(file = paste(c("outData/",main,"coancestoryOutput"), collapse=" "))
+
+relData<-output$relatedness[,c(2,3,estimator)]
+hist(relData[,3]) #to see how the data is distributed
+
+#Makes links DF
+lrelData<-relData
+colnames(lrelData)[1] <- "from"
+colnames(lrelData)[2] <- "to"
+colnames(lrelData)[3] <- "weight"
+lrelData$type<-"probRel"
+
+relDataNoRows<-nrow(relData) #get number of rows and store for later use.
+#create new DF for nodes
+nrelData <- data.frame(matrix(ncol = 4, nrow = relDataNoRows))
+colnames(nrelData) <- c("id", "name", "type", "label")
+
+#Populate the DF with the 'to' nodes from original list
+nrelData[,1]<-relData[,2]
+nrelData[,2]<-relData[,2]
+
+#add the first entry from the 'from' list (otherwise it wont get in as it is not
+# in the 'to list')
+newrow = c(relData[1,1],relData[1,1],NA,NA)
+nrelData = rbind(nrelData,newrow)
+
+#have a look
+head(nrelData)
+head(lrelData)
+nrow(nrelData); length(unique(nrelData$id))
+nrow(lrelData); nrow(unique(lrelData[,c("from", "to")]))
+
+nrelData<-data.frame(unique(nrelData[ , 1:4]))
+
+#Apply types "adult" or "larvae" to fish based on id number.
+tst<-ifelse(grepl("^A", nrelData$id),nrelData$type<-"adult",nrelData$type<-"larvae")
+nrelData$type<-tst
+rm(tst)
+
+# Add data from larv to relatedNodes so that they are available for filtering on year etc.
+larvNrel<-merge(nrelData,larv, by.x="id", by.y="LarvalRecords_LarvaID")
+larvNrel<-larvNrel[,c(1:4,66)]
+
+#Create the network data
+net<-graph_from_data_frame(d=lrelData, vertices=nrelData, directed=FALSE)
+
+# Generate colors for adults and larvae:
+colrs <- c("tomato", "gold")
+V(net)$color <- colrs[V(net)$type]
+
+#Limit to full siblings - this also makes it more sparse.
+net.FS <- delete_edges(net, E(net)[weight<0.4])
+l <- layout_with_fr(net.FS)
+
+plot(net.FS, edge.arrow.size=0, edge.curved=0, vertex.size=5,vertex.color=c("orange", "cyan")[(V(net.FS)$type=="larvae")+1], vertex.frame.color="#555555",vertex.label=V(net)$name, vertex.label.color="black",vertex.label.cex=.7,layout=l, main = main)
+```
+
+# 2011-2013 Larval Relatedness Plots
+```{r}
+main="3 Years Larval snps"
+load(file = paste(c("outData/",main,"coancestoryOutput"), collapse=" "))
+require(igraph)
+
+relData<-output$relatedness[,c(2,3,estimator)]
+hist(relData[,3]) #to see how the data is distributed
+
+#Makes links DF
+lrelData<-relData
+colnames(lrelData)[1] <- "from"
+colnames(lrelData)[2] <- "to"
+colnames(lrelData)[3] <- "weight"
+lrelData$type<-"probRel"
+
+relDataNoRows<-nrow(relData) #get number of rows and store for later use.
+#create new DF for nodes
+nrelData <- data.frame(matrix(ncol = 4, nrow = relDataNoRows))
+colnames(nrelData) <- c("id", "name", "type", "label")
+
+#Populate the DF with the 'to' nodes from original list
+nrelData[,1]<-relData[,2]
+nrelData[,2]<-relData[,2]
+
+#add the first entry from the 'from' list (otherwise it wont get in as it is not
+# in the 'to list')
+newrow = c(relData[1,1],relData[1,1],NA,NA)
+nrelData = rbind(nrelData,newrow)
+
+#have a look
+head(nrelData)
+head(lrelData)
+nrow(nrelData); length(unique(nrelData$id))
+nrow(lrelData); nrow(unique(lrelData[,c("from", "to")]))
+
+nrelData<-data.frame(unique(nrelData[ , 1:4]))
+
+#Apply types "adult" or "larvae" to fish based on id number.
+tst<-ifelse(grepl("^A", nrelData$id),nrelData$type<-"adult",nrelData$type<-"larvae")
+nrelData$type<-tst
+rm(tst)
+
+# Add data from larv to relatedNodes so that they are available for filtering on year etc.
+larvNrel<-merge(nrelData,larv, by.x="id", by.y="LarvalRecords_LarvaID")
+larvNrel<-larvNrel[,c(1:4,66)]
+
+#Create the network data
+net<-graph_from_data_frame(d=lrelData, vertices=nrelData, directed=FALSE)
+
+# Generate colors for adults and larvae:
+colrs <- c("tomato", "gold")
+V(net)$color <- colrs[V(net)$type]
+
+#Limit to full siblings - this also makes it more sparse.
+net.FS <- delete_edges(net, E(net)[weight<0.4])
+l <- layout_with_fr(net.FS)
+
+plot(net.FS, edge.arrow.size=0, edge.curved=0, vertex.size=5,vertex.color=c("orange", "cyan")[(V(net.FS)$type=="larvae")+1], vertex.frame.color="#555555",vertex.label=V(net)$name, vertex.label.color="black",vertex.label.cex=.7,layout=l, main = main)
+```
+
+#Session Info
+```{r "Include_Chunk_Labels_and_Session Information"}
+all_labels()
+proc.time()-ptm
+#Session Information
+sessionInfo()
+
+```
