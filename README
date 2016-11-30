@@ -1,4 +1,4 @@
-This project use 'relate' which requires 32 bit version of r to be set in global options before working.
+This project use 'related' which requires 32 bit version of r to be set in global options before working.
 
-It also needs 64 bit R for other parts (adegenet) so needs some manual love.
+Unfortunately it also needs 64 bit R for other parts (adegenet) so needs some manual love switching between sections.
 
